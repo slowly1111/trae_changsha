@@ -1,0 +1,29 @@
+{
+  "title": "今年也算顺顺利利",
+  "emotion_primary": "忙中带喜",
+  "emotion_secondary": ["完成感", "释然", "轻度疲惫"],
+  "scenario": ["年前收尾", "办公室", "下班路上"],
+  "energy_level": 3
+}
+{
+  "title": "热闹已经在路上",
+  "emotion_primary": "喜庆开心",
+  "emotion_secondary": ["期待", "兴奋", "节日感"],
+  "scenario": ["过年", "聚会", "家庭", "播放背景音乐"],
+  "energy_level": 5
+}
+
+{
+  "title": "慢慢迎着新年",
+  "emotion_primary": "平稳祝福",
+  "emotion_secondary": ["平静", "安心", "温和期待"],
+  "scenario": ["随便听听", "晚上", "背景音乐"],
+  "energy_level": 2
+}
+{
+  "title": "回家这件小事",
+  "emotion_primary": "团圆陪伴",
+  "emotion_secondary": ["温暖", "安心", "亲情"],
+  "scenario": ["回家", "家庭", "春节夜晚"],
+  "energy_level": 4
+}

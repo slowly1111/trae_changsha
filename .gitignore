@@ -1,0 +1,32 @@
+node_modules/
+.next/
+out/
+dist/
+coverage/
+logs/
+*.log
+
+# Env & local config
+.env
+.env.*
+.env.local
+.DS_Store
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+Thumbs.db
+
+# Build caches
+.turbo/
+.cache/
+
+# Runtime
+.vercel/
+.pnpm-store/
+
+# Generated assets
+public/.cache/
+
