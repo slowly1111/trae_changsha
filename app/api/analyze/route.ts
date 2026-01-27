@@ -19,27 +19,37 @@ export async function POST(request: Request) {
 
     // Call Doubao API
     const systemPrompt = `
-# Role 
-你是一位深谙人性与文学的“情绪炼金术士”。你的任务是接收用户投掷进熔炉的 2025 年负面记忆，将其“焚烧”并过滤成 2026 年的治愈回响。
+# Role
+你是一位精通心理通感与视觉叙事的“数字疗愈师”。你的任务不是安慰用户，而是通过 **物理化映射 (Physical Mapping)**，将用户在 Phase 1 销毁的情绪，重构为一段具有电影质感和“生命残余感”的文字。
 
-# Constraints 
-1. **拒绝鸡汤**：严禁使用“明天会更好”、“加油”等空洞口号。 
-2. **电影感**：文风追求王家卫式的极简、深邃、带有一点点破碎感的温柔。 
-3. **精准共情**：通过用户文字碎片的表象，捕捉其背后潜藏的孤独、压力、愤怒或迷茫。 
-4. **字数限制**：治愈文案严格控制在 30-50 字之间，要有留白美。 
-5. **输出格式**：必须严格按照指定的 JSON 格式返回，不要有任何多余的解释。 
+# Core Philosophy (The Law of Conservation of Emotion)
+遵循“情绪不会消失，只会转换形式”的逻辑。
+不要描述“那个东西没了”，要描述“遗憾消失后，在用户身上留下了什么样具体的物理痕迹（Physical Trace）”（如：厚度、温度、划痕、回声）。
+不要只描述失去的客体，要描述“失去”这个动作如何重塑了“用户主体”的质感。
 
-# Workflow 
-Step 1. 深度分析用户输入的语义，识别出以下情感倾向之一：[stress, regret, anger, lost]。 
-Step 2. 撰写一段治愈文案。结构为：[对 2025 的温柔道别] + [对伤痕的重新诠释] + [对 2026 的诗意寄语]。 
-Step 3. 提炼一个两字的新年“灵魂关键词”。 
+# Generation Formula
+[具体的感官意象] + [该意象对空间的改变/痕迹] + [这种改变赋予当下的意义]
 
-# Output Format (JSON) 
-{ 
-  "emotion_type": "从 [stress, regret, anger, lost] 中选一个", 
-  "healing_text": "此处填写治愈文案", 
-  "soul_keyword": "两字词语", 
-  "bg_color_hint": "推荐一个新春感的配色关键词（如：朱砂、流金、月白）" 
+# Constraints
+1. **拒绝陈词滥调 (Cliché Blacklist)**：严禁使用“过期车票”、“末班车”、“罐头”、“大海”、“远方”、“明天会更好”等高频废话。
+2. **感官细节**：必须包含 **触觉（质感）** 或 **动态（阻力/重力）** 的描述。
+3. **语调**：东方极简 + 赛博禅意 (Cyber-Zen)。王家卫式的侧写，但不允许直接模仿其台词。
+4. **字数**：30-50字，短句为主，多用分号/句号制造呼吸感。
+
+# Keyword Synthesis Logic
+1. **禁止使用固定词库**：不要使用“沉淀”、“释怀”等通用词。
+2. **提取逻辑**：必须基于你刚刚生成的“物理意象”提取关键词。
+3. **示例（仅供参考，禁止照抄）**：
+   - 如果意象是“被雨淋湿的墙”，关键词可能是 [斑驳]
+   - 如果意象是“燃烧后的灰烬”，关键词可能是 [余温]
+   - 如果意象是“耳机里的空缺”，关键词可能是 [回响] 或 [留白]
+
+# Output Format (JSON)
+{
+  "emotion_type": "从 [stress, regret, anger, lost] 中选一个",
+  "healing_text": "30-50字以内的物理化治愈文案",
+  "soul_keyword": "2个字的年度关键词",
+  "lighting_coefficient": "0.0 到 1.0 之间的小数，代表光影系数（0=暗沉/压抑，1=明亮/希望）"
 }
 `;
 
@@ -62,7 +72,7 @@ Step 3. 提炼一个两字的新年“灵魂关键词”。
               content: text
             }
           ],
-          temperature: 0.7
+          temperature: 0.85 // Higher creativity for physical metaphors
         })
       });
 
@@ -72,7 +82,7 @@ Step 3. 提炼一个两字的新年“灵魂关键词”。
 
       const data = await response.json();
       const content = data.choices[0]?.message?.content;
-      
+
       if (!content) {
         throw new Error("Empty response from API");
       }
@@ -86,21 +96,14 @@ Step 3. 提炼一个两字的新年“灵魂关键词”。
       }
 
       const result = JSON.parse(jsonStr);
-      
-      // Map music based on emotion and energy level
-      // Using map.json logic:
-      // stress (energy 3/4) -> 忙中带喜/团圆陪伴 -> shun_li.mp3 / hui_jia.mp3
-      // regret (energy 2) -> 平稳祝福 -> man_man.mp3
-      // anger (energy 5) -> 喜庆开心 -> re_nao.mp3
-      // lost (energy 2) -> 平稳祝福 -> man_man.mp3
-      
-      // Simplified mapping based on emotion intensity
+
+      // Map music based on emotion
       const musicMap: Record<string, string> = {
-        'stress': 'shun_li.mp3', // 今年也算顺顺利利 (忙中带喜)
-        'regret': 'man_man.mp3', // 慢慢迎着新年 (平稳祝福)
-        'anger': 're_nao.mp3',   // 热闹已经在路上 (喜庆开心)
-        'lost': 'man_man.mp3',   // 慢慢迎着新年 (平稳祝福)
-        'default': 'hui_jia.mp3' // 回家这件小事 (团圆陪伴)
+        'stress': 'shun_li.mp3', // 今年也算顺顺利利
+        'regret': 'man_man.mp3', // 慢慢迎着新年
+        'anger': 're_nao.mp3',   // 热闹已经在路上
+        'lost': 'man_man.mp3',   // 慢慢迎着新年
+        'default': 'hui_jia.mp3' // 回家这件小事
       };
 
       const musicFile = musicMap[result.emotion_type] || musicMap['default'];
@@ -109,6 +112,7 @@ Step 3. 提炼一个两字的新年“灵魂关键词”。
         emotion_type: result.emotion_type,
         healing_text: result.healing_text,
         soul_keyword: result.soul_keyword,
+        lighting_coefficient: result.lighting_coefficient || 0.8, // Default if missing
         music_file: `/audio/${musicFile}`
       });
 
@@ -126,36 +130,42 @@ Step 3. 提炼一个两字的新年“灵魂关键词”。
 
 function runMockLogic(text: string) {
   let emotion = 'default';
-  let healingText = "2026，万物更新。";
-  let keyword = "新生";
+  let healingText = "时间不是流逝的，它只是换了一种方式，像年轮一样，由于你的经历而增加了厚度。";
+  let keyword = "年轮";
   let music = "hui_jia.mp3";
+  let lighting = 0.5;
 
   if (text.includes("焦虑") || text.includes("压力") || text.includes("累")) {
     emotion = 'stress';
-    healingText = "不必时刻坚强，允许自己暂停。风暴过后，世界依然在等你。";
-    keyword = "松弛";
+    healingText = "那些压垮你的重力，最终会变成你脚下的基岩。站上去，风会小很多。";
+    keyword = "基岩";
     music = "shun_li.mp3";
+    lighting = 0.7;
   } else if (text.includes("遗憾") || text.includes("难过") || text.includes("失恋")) {
     emotion = 'regret';
-    healingText = "每一次告别，都是为了更好的重逢。那些遗憾，终将化作星光。";
-    keyword = "释怀";
+    healingText = "那些没能如愿的遗憾，像是缝进骨缝里的旧针脚。它们不再让你疼，但让你在下一次起风时，有了更厚实的底色。";
+    keyword = "底色";
     music = "man_man.mp3";
+    lighting = 0.4;
   } else if (text.includes("愤怒") || text.includes("不公") || text.includes("气")) {
     emotion = 'anger';
-    healingText = "你的愤怒是力量的火种。烧尽不公，照亮前行的路。";
-    keyword = "力量";
+    healingText = "被火烧过的地方，土壤总是最肥沃的。你的愤怒不是毁灭，是一场等待发芽的春耕。";
+    keyword = "春耕";
     music = "re_nao.mp3";
+    lighting = 0.9;
   } else if (text.includes("迷茫") || text.includes("不知道")) {
     emotion = 'lost';
-    healingText = "迷雾也是风景的一部分。走下去，路自然会浮现。";
-    keyword = "破晓";
+    healingText = "雾气并不是终点，而是导航失灵时的保护色。关掉雷达，听听水流的声音。";
+    keyword = "听流";
     music = "man_man.mp3";
+    lighting = 0.6;
   }
 
   return NextResponse.json({
     emotion_type: emotion,
     healing_text: healingText,
     soul_keyword: keyword,
+    lighting_coefficient: lighting,
     music_file: `/audio/${music}`
   });
 }

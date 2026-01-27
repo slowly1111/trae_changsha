@@ -5,7 +5,7 @@ import { motion, useAnimation } from 'framer-motion';
 import clsx from 'clsx';
 
 interface InputStageProps {
-  onComplete: (text: string) => void;
+  onComplete: (text: string, durationMs: number) => void;
 }
 
 export default function InputStage({ onComplete }: InputStageProps) {
@@ -15,9 +15,10 @@ export default function InputStage({ onComplete }: InputStageProps) {
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const requestRef = useRef<number>();
   const containerControls = useAnimation();
+  const startTimeRef = useRef<number>(0);
 
   useEffect(() => {
-    audioRef.current = new Audio('/audio/fire_burning.mp3');
+    audioRef.current = new Audio('/audio/fire_burning.wav');
     audioRef.current.loop = true;
     return () => {
       if (audioRef.current) {
@@ -30,16 +31,17 @@ export default function InputStage({ onComplete }: InputStageProps) {
   const startPress = () => {
     if (!text.trim()) return;
     setIsPressing(true);
+    startTimeRef.current = Date.now();
+
     if (audioRef.current) {
       audioRef.current.volume = 0;
-      audioRef.current.play().catch(() => {});
+      audioRef.current.play().catch(() => { });
     }
-    
-    let startTime = Date.now();
+
     const duration = 2000; // 2 seconds
 
     const animate = () => {
-      const elapsed = Date.now() - startTime;
+      const elapsed = Date.now() - startTimeRef.current;
       const p = Math.min(elapsed / duration, 1);
       setProgress(p);
 
@@ -56,10 +58,10 @@ export default function InputStage({ onComplete }: InputStageProps) {
           y: Math.random() * intensity - intensity / 2,
           transition: { duration: 0.05 }
         });
-        
+
         // Haptic feedback if available
         if (typeof navigator !== 'undefined' && navigator.vibrate) {
-           if (Math.random() < p) navigator.vibrate(20);
+          if (Math.random() < p) navigator.vibrate(20);
         }
       }
 
@@ -67,9 +69,10 @@ export default function InputStage({ onComplete }: InputStageProps) {
         requestRef.current = requestAnimationFrame(animate);
       } else {
         // Complete
+        const actualDuration = Date.now() - startTimeRef.current;
         setIsPressing(false);
         if (audioRef.current) audioRef.current.pause();
-        onComplete(text);
+        onComplete(text, actualDuration);
       }
     };
 
@@ -80,32 +83,31 @@ export default function InputStage({ onComplete }: InputStageProps) {
     setIsPressing(false);
     setProgress(0);
     if (requestRef.current) cancelAnimationFrame(requestRef.current);
+
     if (audioRef.current) {
       audioRef.current.pause();
       audioRef.current.currentTime = 0;
     }
+
     containerControls.start({ x: 0, y: 0 });
   };
 
   // Calculate text color based on progress
-  // White -> Orange/Red -> Bright White
   const getTextColor = () => {
     if (progress < 0.5) {
-      // White to Red
       return `rgb(255, ${255 * (1 - progress * 2)}, ${255 * (1 - progress * 2)})`;
     } else {
-      // Red to Bright White (with glow)
       return `rgb(255, ${255 * (progress - 0.5) * 2}, ${255 * (progress - 0.5) * 2})`;
     }
   };
 
   return (
-    <motion.div 
+    <motion.div
       className="flex flex-col items-center justify-center w-full max-w-2xl px-4"
       animate={containerControls}
     >
       <h1 className="text-4xl font-bold mb-8 text-white/80 tracking-widest">熔炉 2025</h1>
-      
+
       <div className="relative w-full h-64 mb-12 group">
         <textarea
           value={text}
@@ -121,13 +123,13 @@ export default function InputStage({ onComplete }: InputStageProps) {
           }}
           disabled={isPressing}
         />
-        
+
         {/* Burning overlay effect */}
         {isPressing && (
-           <div 
-             className="absolute inset-0 pointer-events-none rounded-xl bg-red-500/10 mix-blend-overlay"
-             style={{ opacity: progress }}
-           />
+          <div
+            className="absolute inset-0 pointer-events-none rounded-xl bg-red-500/10 mix-blend-overlay"
+            style={{ opacity: progress }}
+          />
         )}
       </div>
 
@@ -149,8 +151,8 @@ export default function InputStage({ onComplete }: InputStageProps) {
           disabled={!text.trim()}
           className={clsx(
             "relative z-10 w-32 h-32 rounded-full flex items-center justify-center border-4 transition-all duration-200 select-none touch-none",
-            text.trim() 
-              ? "bg-red-900/20 border-red-500/50 text-red-500 hover:bg-red-900/40 hover:scale-105 active:scale-95 cursor-pointer" 
+            text.trim()
+              ? "bg-red-900/20 border-red-500/50 text-red-500 hover:bg-red-900/40 hover:scale-105 active:scale-95 cursor-pointer"
               : "bg-gray-900/20 border-gray-700 text-gray-700 cursor-not-allowed"
           )}
         >
@@ -166,7 +168,7 @@ export default function InputStage({ onComplete }: InputStageProps) {
               </>
             )}
           </div>
-          
+
           {/* Progress Ring */}
           <svg className="absolute inset-0 w-full h-full -rotate-90 pointer-events-none">
             <circle
@@ -183,10 +185,11 @@ export default function InputStage({ onComplete }: InputStageProps) {
           </svg>
         </button>
       </div>
-      
+
       <p className="mt-8 text-white/30 text-sm animate-pulse">
         {isPressing ? "正在升温..." : "长按按钮以销毁记忆"}
       </p>
     </motion.div>
   );
 }
+

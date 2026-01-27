@@ -6,19 +6,22 @@ import { Download, RefreshCw } from 'lucide-react';
 import MusicControl from './MusicControl';
 import { toPng } from 'html-to-image';
 import { PosterTemplate } from './PosterTemplate';
+import { updatePosterSaved } from '@/lib/supabase';
 
 interface AnalysisResult {
   emotion_type: string;
   healing_text: string;
   soul_keyword: string;
   music_file: string;
+  lighting_coefficient: number;
 }
 
 interface RebirthStageProps {
   analysisResult: AnalysisResult | null;
+  recordId: string | null;
 }
 
-export default function RebirthStage({ analysisResult }: RebirthStageProps) {
+export default function RebirthStage({ analysisResult, recordId }: RebirthStageProps) {
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const posterRef = useRef<HTMLDivElement>(null);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -34,9 +37,9 @@ export default function RebirthStage({ analysisResult }: RebirthStageProps) {
       audioRef.current = new Audio(analysisResult.music_file);
       audioRef.current.loop = true; // Loop the music
       audioRef.current.volume = 0;
-      
+
       const playPromise = audioRef.current.play();
-      
+
       if (playPromise !== undefined) {
         playPromise.then(() => {
           setIsPlaying(true);
@@ -49,7 +52,7 @@ export default function RebirthStage({ analysisResult }: RebirthStageProps) {
           setIsPlaying(false);
         });
       }
-      
+
       // Fade in
       let vol = 0;
       const fade = setInterval(() => {
@@ -72,7 +75,7 @@ export default function RebirthStage({ analysisResult }: RebirthStageProps) {
 
   const toggleMusic = () => {
     if (!audioRef.current) return;
-    
+
     if (isPlaying) {
       audioRef.current.pause();
     } else {
@@ -99,6 +102,11 @@ export default function RebirthStage({ analysisResult }: RebirthStageProps) {
       link.download = `furnace-2026-rebirth.png`;
       link.href = dataUrl;
       link.click();
+
+      // Track poster save in Supabase
+      if (recordId) {
+        updatePosterSaved(recordId);
+      }
     } catch (err) {
       console.error('Failed to generate poster:', err);
       window.alert("灵感封存失败，请重试或截屏保存。");
@@ -115,10 +123,21 @@ export default function RebirthStage({ analysisResult }: RebirthStageProps) {
 
   return (
     <div className="relative min-h-screen w-full flex flex-col items-center justify-center p-8 overflow-hidden">
-      
+
+      {/* Dynamic Lighting Overlay */}
+      <motion.div
+        className="absolute inset-0 z-0 pointer-events-none mix-blend-overlay"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: analysisResult.lighting_coefficient }}
+        transition={{ duration: 2 }}
+        style={{
+          background: `radial-gradient(circle at center, rgba(255,255,255,${analysisResult.lighting_coefficient * 0.5}) 0%, transparent 70%)`
+        }}
+      />
+
       {/* Hidden Poster Template */}
       <div className="fixed top-0 left-0 opacity-0 pointer-events-none z-[-1]">
-        <PosterTemplate 
+        <PosterTemplate
           ref={posterRef}
           healingText={analysisResult.healing_text}
           soulKeyword={analysisResult.soul_keyword}
@@ -126,53 +145,53 @@ export default function RebirthStage({ analysisResult }: RebirthStageProps) {
       </div>
 
       {/* Music Control - Floating Top Right */}
-      <MusicControl 
-        isPlaying={isPlaying} 
-        onToggle={toggleMusic} 
-        showHint={showMusicHint} 
+      <MusicControl
+        isPlaying={isPlaying}
+        onToggle={toggleMusic}
+        showHint={showMusicHint}
       />
 
       <div className="max-w-2xl w-full text-center relative z-10 space-y-12">
         {/* Healing Text */}
         <div className="relative">
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 1.5, delay: 0.5 }}
-              className="text-2xl md:text-4xl font-serif leading-relaxed text-[#1A1A1A] drop-shadow-sm relative z-10"
-            >
-              {analysisResult.healing_text.split('').map((char, i) => (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 1.5, delay: 0.5 }}
+            className="text-2xl md:text-4xl font-serif leading-relaxed text-[#1A1A1A] drop-shadow-sm relative z-10"
+          >
+            {analysisResult.healing_text.split('').map((char, i) => (
+              <motion.span
+                key={i}
+                className="inline-block relative"
+                initial={{ opacity: 0, filter: 'blur(5px)' }}
+                animate={{ opacity: 1, filter: 'blur(0px)' }}
+                transition={{ duration: 0.8, delay: 1 + i * 0.1 }}
+              >
+                {char}
+                {/* Shimmer Effect per character */}
                 <motion.span
-                  key={i}
-                  className="inline-block relative"
-                  initial={{ opacity: 0, filter: 'blur(5px)' }}
-                  animate={{ opacity: 1, filter: 'blur(0px)' }}
-                  transition={{ duration: 0.8, delay: 1 + i * 0.1 }}
+                  className="absolute inset-0 text-[#B8860B] opacity-0 pointer-events-none"
+                  animate={{
+                    opacity: [0, 0.8, 0],
+                    backgroundPosition: ['-100%', '200%']
+                  }}
+                  transition={{
+                    duration: 1.5,
+                    delay: 2 + i * 0.1,
+                    ease: "easeInOut"
+                  }}
+                  style={{
+                    background: 'linear-gradient(90deg, transparent, rgba(184, 134, 11, 0.8), transparent)',
+                    WebkitBackgroundClip: 'text',
+                    backgroundClip: 'text',
+                  }}
                 >
                   {char}
-                  {/* Shimmer Effect per character */}
-                  <motion.span 
-                    className="absolute inset-0 text-[#B8860B] opacity-0 pointer-events-none"
-                    animate={{ 
-                        opacity: [0, 0.8, 0],
-                        backgroundPosition: ['-100%', '200%']
-                    }}
-                    transition={{ 
-                        duration: 1.5, 
-                        delay: 2 + i * 0.1, 
-                        ease: "easeInOut" 
-                    }}
-                    style={{
-                        background: 'linear-gradient(90deg, transparent, rgba(184, 134, 11, 0.8), transparent)',
-                        WebkitBackgroundClip: 'text',
-                        backgroundClip: 'text',
-                    }}
-                  >
-                    {char}
-                  </motion.span>
                 </motion.span>
-              ))}
-            </motion.div>
+              </motion.span>
+            ))}
+          </motion.div>
         </div>
 
         {/* Keyword Card */}
@@ -195,26 +214,26 @@ export default function RebirthStage({ analysisResult }: RebirthStageProps) {
           transition={{ delay: 5, duration: 1 }}
           className="flex justify-center gap-6 mt-12"
         >
-          <button 
+          <button
             onClick={() => window.location.reload()}
             className="flex items-center gap-2 px-6 py-3 rounded-full bg-[#1A1A1A]/5 hover:bg-[#1A1A1A]/10 transition-colors text-[#1A1A1A]/80"
           >
             <RefreshCw size={18} />
             再试一次
           </button>
-          
-          <button 
+
+          <button
             onClick={handleSavePoster}
             disabled={isSaving}
             className="flex items-center gap-2 px-6 py-3 rounded-full bg-[#B8860B]/10 hover:bg-[#B8860B]/20 text-[#B8860B] transition-colors border border-[#B8860B]/30 disabled:opacity-50 disabled:cursor-not-allowed min-w-[160px] justify-center"
           >
             {isSaving ? (
-               <span className="animate-pulse">正在封存灵感...</span>
+              <span className="animate-pulse">正在封存灵感...</span>
             ) : (
-               <>
-                 <Download size={18} />
-                 保存灵感卡片
-               </>
+              <>
+                <Download size={18} />
+                保存灵感卡片
+              </>
             )}
           </button>
         </motion.div>
