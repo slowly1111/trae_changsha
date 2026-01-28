@@ -1,10 +1,28 @@
-import { createClient } from '@supabase/supabase-js';
+import { createClient, SupabaseClient } from '@supabase/supabase-js';
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+// 延迟初始化 Supabase 客户端，避免构建时环境变量不可用的问题
+let supabaseInstance: SupabaseClient | null = null;
 
-// 创建 Supabase 客户端（前端可用）
-export const supabase = createClient(supabaseUrl, supabaseAnonKey);
+function getSupabaseClient(): SupabaseClient | null {
+    if (typeof window === 'undefined') {
+        // 服务端渲染或构建时，不初始化客户端
+        return null;
+    }
+
+    if (!supabaseInstance) {
+        const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+        const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+        if (supabaseUrl && supabaseAnonKey) {
+            supabaseInstance = createClient(supabaseUrl, supabaseAnonKey);
+        }
+    }
+
+    return supabaseInstance;
+}
+
+// 导出获取客户端的函数
+export const getSupabase = getSupabaseClient;
 
 // Session ID 管理（匿名用户标识）
 const SESSION_KEY = 'furnace_session_id';
@@ -38,6 +56,9 @@ export interface BurnRecord {
  * 保存一次"焚烧"记录
  */
 export async function saveBurnRecord(record: Omit<BurnRecord, 'id' | 'created_at'>) {
+    const supabase = getSupabase();
+    if (!supabase) return null;
+
     const { data, error } = await supabase
         .from('burn_records')
         .insert([record])
@@ -55,6 +76,9 @@ export async function saveBurnRecord(record: Omit<BurnRecord, 'id' | 'created_at
  * 更新海报保存状态
  */
 export async function updatePosterSaved(recordId: string) {
+    const supabase = getSupabase();
+    if (!supabase) return;
+
     const { error } = await supabase
         .from('burn_records')
         .update({ saved_poster: true })
@@ -69,6 +93,9 @@ export async function updatePosterSaved(recordId: string) {
  * 获取用户的历史记录
  */
 export async function getUserHistory(sessionId: string) {
+    const supabase = getSupabase();
+    if (!supabase) return [];
+
     const { data, error } = await supabase
         .from('burn_records')
         .select('*')
@@ -86,6 +113,9 @@ export async function getUserHistory(sessionId: string) {
  * 获取用户统计数据
  */
 export async function getUserStats(sessionId: string) {
+    const supabase = getSupabase();
+    if (!supabase) return null;
+
     const { data, error } = await supabase
         .from('burn_records')
         .select('emotion_type, soul_keyword')
@@ -100,7 +130,7 @@ export async function getUserStats(sessionId: string) {
     const emotionCounts: Record<string, number> = {};
     const keywords: string[] = [];
 
-    data.forEach((record) => {
+    data.forEach((record: { emotion_type: string; soul_keyword: string }) => {
         emotionCounts[record.emotion_type] = (emotionCounts[record.emotion_type] || 0) + 1;
         keywords.push(record.soul_keyword);
     });
@@ -111,3 +141,4 @@ export async function getUserStats(sessionId: string) {
         keywords,
     };
 }
+
