@@ -7,6 +7,7 @@ import MusicControl from './MusicControl';
 import { toPng } from 'html-to-image';
 import { PosterTemplate } from './PosterTemplate';
 import { updatePosterSaved } from '@/lib/supabase';
+import { trackEvent } from '@/components/GoogleAnalytics';
 
 interface AnalysisResult {
   emotion_type: string;
@@ -28,7 +29,21 @@ export default function RebirthStage({ analysisResult, recordId }: RebirthStageP
   const [showMusicHint, setShowMusicHint] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
 
+  // 埋点相关
+  const pageEnterTimeRef = useRef<number>(Date.now());
+  const hasTrackedViewRef = useRef(false);
+  const hasMusicPlayedRef = useRef(false);
+
   useEffect(() => {
+    // 追踪 rebirth_view（仅首次）
+    if (analysisResult && !hasTrackedViewRef.current) {
+      hasTrackedViewRef.current = true;
+      trackEvent('rebirth_view', {
+        emotion_type: analysisResult.emotion_type,
+        keyword: analysisResult.soul_keyword
+      });
+    }
+
     // Play Music when result is available
     if (analysisResult?.music_file) {
       if (audioRef.current) {
@@ -43,6 +58,13 @@ export default function RebirthStage({ analysisResult, recordId }: RebirthStageP
       if (playPromise !== undefined) {
         playPromise.then(() => {
           setIsPlaying(true);
+
+          // 追踪音乐自动播放
+          if (!hasMusicPlayedRef.current) {
+            hasMusicPlayedRef.current = true;
+            trackEvent('music_play', { auto_play: true });
+          }
+
           // Show hint shortly after music starts (1.5s delay)
           setTimeout(() => setShowMusicHint(true), 1500);
           // Hide hint after 4.5s duration (1.5s + 4.5s = 6s)
@@ -66,6 +88,10 @@ export default function RebirthStage({ analysisResult, recordId }: RebirthStageP
     }
 
     return () => {
+      // 页面离开时追踪停留时长
+      const stayDuration = Math.round((Date.now() - pageEnterTimeRef.current) / 1000);
+      trackEvent('page_stay_duration', { duration_seconds: stayDuration });
+
       if (audioRef.current) {
         audioRef.current.pause();
         audioRef.current = null;
@@ -80,6 +106,11 @@ export default function RebirthStage({ analysisResult, recordId }: RebirthStageP
       audioRef.current.pause();
     } else {
       audioRef.current.play();
+      // 追踪手动播放音乐
+      if (!hasMusicPlayedRef.current) {
+        hasMusicPlayedRef.current = true;
+        trackEvent('music_play', { auto_play: false });
+      }
     }
     setIsPlaying(!isPlaying);
   };
@@ -103,6 +134,12 @@ export default function RebirthStage({ analysisResult, recordId }: RebirthStageP
       link.href = dataUrl;
       link.click();
 
+      // 追踪 poster_save
+      trackEvent('poster_save', {
+        emotion_type: analysisResult?.emotion_type,
+        keyword: analysisResult?.soul_keyword
+      });
+
       // Track poster save in Supabase
       if (recordId) {
         updatePosterSaved(recordId);
@@ -113,6 +150,14 @@ export default function RebirthStage({ analysisResult, recordId }: RebirthStageP
     } finally {
       setIsSaving(false);
     }
+  };
+
+  const handleRestart = () => {
+    // 追踪 restart
+    const stayDuration = Math.round((Date.now() - pageEnterTimeRef.current) / 1000);
+    trackEvent('restart', { stay_duration_seconds: stayDuration });
+
+    window.location.reload();
   };
 
   // If data is not ready yet (rare case if API is very slow), keep transparent
@@ -215,7 +260,7 @@ export default function RebirthStage({ analysisResult, recordId }: RebirthStageP
           className="flex justify-center gap-6 mt-12"
         >
           <button
-            onClick={() => window.location.reload()}
+            onClick={handleRestart}
             className="flex items-center gap-2 px-6 py-3 rounded-full bg-[#1A1A1A]/5 hover:bg-[#1A1A1A]/10 transition-colors text-[#1A1A1A]/80"
           >
             <RefreshCw size={18} />
@@ -241,3 +286,4 @@ export default function RebirthStage({ analysisResult, recordId }: RebirthStageP
     </div>
   );
 }
+

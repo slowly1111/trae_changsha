@@ -1,8 +1,9 @@
 "use client";
 
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { motion, useAnimation } from 'framer-motion';
 import clsx from 'clsx';
+import { trackEvent } from '@/components/GoogleAnalytics';
 
 interface InputStageProps {
   onComplete: (text: string, durationMs: number) => void;
@@ -17,6 +18,11 @@ export default function InputStage({ onComplete }: InputStageProps) {
   const containerControls = useAnimation();
   const startTimeRef = useRef<number>(0);
 
+  // 埋点相关状态
+  const hasStartedInputRef = useRef(false);
+  const editCountRef = useRef(0);
+  const hasBurnAttemptedRef = useRef(false);
+
   useEffect(() => {
     audioRef.current = new Audio('/audio/fire_burning.wav');
     audioRef.current.loop = true;
@@ -28,10 +34,34 @@ export default function InputStage({ onComplete }: InputStageProps) {
     };
   }, []);
 
+  // 处理文本变化 - 追踪 input_start 和 text_edit_count
+  const handleTextChange = useCallback((e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    const newText = e.target.value;
+    setText(newText);
+
+    // 首次输入追踪
+    if (!hasStartedInputRef.current && newText.length > 0) {
+      hasStartedInputRef.current = true;
+      trackEvent('input_start', { text_length: newText.length });
+    }
+
+    // 编辑次数追踪
+    if (hasStartedInputRef.current) {
+      editCountRef.current += 1;
+    }
+  }, []);
+
   const startPress = () => {
     if (!text.trim()) return;
     setIsPressing(true);
     startTimeRef.current = Date.now();
+    hasBurnAttemptedRef.current = true;
+
+    // 追踪 burn_attempt
+    trackEvent('burn_attempt', {
+      text_length: text.length,
+      edit_count: editCountRef.current
+    });
 
     if (audioRef.current) {
       audioRef.current.volume = 0;
@@ -72,6 +102,14 @@ export default function InputStage({ onComplete }: InputStageProps) {
         const actualDuration = Date.now() - startTimeRef.current;
         setIsPressing(false);
         if (audioRef.current) audioRef.current.pause();
+
+        // 追踪 burn_complete
+        trackEvent('burn_complete', {
+          text_length: text.length,
+          press_duration_ms: actualDuration,
+          edit_count: editCountRef.current
+        });
+
         onComplete(text, actualDuration);
       }
     };
@@ -80,6 +118,14 @@ export default function InputStage({ onComplete }: InputStageProps) {
   };
 
   const endPress = () => {
+    // 如果在按压过程中松开（未完成），追踪 burn_abandon
+    if (isPressing && progress < 1 && hasBurnAttemptedRef.current) {
+      trackEvent('burn_abandon', {
+        progress_percent: Math.round(progress * 100),
+        text_length: text.length
+      });
+    }
+
     setIsPressing(false);
     setProgress(0);
     if (requestRef.current) cancelAnimationFrame(requestRef.current);
@@ -111,7 +157,7 @@ export default function InputStage({ onComplete }: InputStageProps) {
       <div className="relative w-full h-64 mb-12 group">
         <textarea
           value={text}
-          onChange={(e) => setText(e.target.value)}
+          onChange={handleTextChange}
           placeholder="写下你想销毁的 2025 记忆..."
           className={clsx(
             "w-full h-full bg-black/30 border-2 rounded-xl p-6 text-xl resize-none outline-none transition-all duration-300",
@@ -192,4 +238,5 @@ export default function InputStage({ onComplete }: InputStageProps) {
     </motion.div>
   );
 }
+
 

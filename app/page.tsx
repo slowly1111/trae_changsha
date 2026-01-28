@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import InputStage from '@/components/Furnace/InputStage';
 import ParticleEffect from '@/components/Furnace/ParticleEffect';
 import RebirthStage from '@/components/Furnace/RebirthStage';
@@ -8,6 +8,7 @@ import FurnaceBackground from '@/components/Furnace/FurnaceBackground';
 import DawnBackground from '@/components/Furnace/DawnBackground';
 import { AnimatePresence, motion } from 'framer-motion';
 import { saveBurnRecord, getSessionId } from '@/lib/supabase';
+import { trackEvent } from '@/components/GoogleAnalytics';
 
 type Stage = 'input' | 'burning' | 'rebirth';
 
@@ -25,6 +26,11 @@ export default function Home() {
   const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(null);
   const [currentRecordId, setCurrentRecordId] = useState<string | null>(null);
   const pressDurationRef = useRef<number>(0);
+
+  // 追踪页面访问
+  useEffect(() => {
+    trackEvent('page_view', { page: 'home' });
+  }, []);
 
   const fetchAnalysis = async (inputText: string) => {
     try {
