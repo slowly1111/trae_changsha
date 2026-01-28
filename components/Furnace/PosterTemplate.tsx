@@ -163,11 +163,11 @@ export const PosterTemplate = React.forwardRef<HTMLDivElement, PosterTemplatePro
               style={{
                 writingMode: 'vertical-rl',
                 textOrientation: 'upright',
-                fontSize: '32px',
+                fontSize: '36px', // 恢复到接近 text-4xl 的大小
                 color: '#2C1810',
-                fontWeight: 500,
-                lineHeight: 2.5,
-                letterSpacing: '0.1em',
+                fontWeight: 600, // 稍微加粗一点
+                lineHeight: 2.2,
+                letterSpacing: '0.15em', // 增加字间距
                 height: '650px',
                 display: 'flex',
                 flexWrap: 'wrap',
@@ -223,6 +223,8 @@ export const PosterTemplate = React.forwardRef<HTMLDivElement, PosterTemplatePro
                   WebkitTextFillColor: 'transparent',
                   backgroundClip: 'text',
                   fontFamily: '"Songti SC", "SimSun", "STSong", serif',
+                  // 恢复关键词的立体效果，但为了兼容性使用 drop-shadow 而不是 text-shadow（因为 text-fill-color: transparent 会吞掉 text-shadow）
+                  filter: 'drop-shadow(2px 2px 0px rgba(255,255,255,0.5))',
                 }}
               >
                 {soulKeyword}
