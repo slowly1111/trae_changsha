@@ -4,6 +4,7 @@ import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { motion, useAnimation } from 'framer-motion';
 import clsx from 'clsx';
 import { trackEvent } from '@/components/GoogleAnalytics';
+import { audioManager } from '@/lib/audioManager';
 
 interface InputStageProps {
   onComplete: (text: string, durationMs: number) => void;
@@ -24,12 +25,12 @@ export default function InputStage({ onComplete }: InputStageProps) {
   const hasBurnAttemptedRef = useRef(false);
 
   useEffect(() => {
-    audioRef.current = new Audio('/audio/fire_burning.wav');
+    // 使用 audioManager 获取音频实例
+    audioRef.current = audioManager.getAudio('/audio/fire_burning.wav');
     audioRef.current.loop = true;
     return () => {
       if (audioRef.current) {
         audioRef.current.pause();
-        audioRef.current = null;
       }
     };
   }, []);
@@ -53,6 +54,10 @@ export default function InputStage({ onComplete }: InputStageProps) {
 
   const startPress = () => {
     if (!text.trim()) return;
+
+    // 在用户首次交互时解锁所有音频（移动端兼容）
+    audioManager.unlock();
+
     setIsPressing(true);
     startTimeRef.current = Date.now();
     hasBurnAttemptedRef.current = true;

@@ -2,12 +2,13 @@
 
 import React, { useEffect, useRef, useState } from 'react';
 import { motion } from 'framer-motion';
-import { Download, RefreshCw } from 'lucide-react';
+import { Download, RefreshCw, Share2 } from 'lucide-react';
 import MusicControl from './MusicControl';
 import { toPng } from 'html-to-image';
 import { PosterTemplate } from './PosterTemplate';
 import { updatePosterSaved } from '@/lib/supabase';
 import { trackEvent } from '@/components/GoogleAnalytics';
+import { audioManager } from '@/lib/audioManager';
 
 interface AnalysisResult {
   emotion_type: string;
@@ -44,13 +45,13 @@ export default function RebirthStage({ analysisResult, recordId }: RebirthStageP
       });
     }
 
-    // Play Music when result is available
+    // 使用 audioManager 播放音乐（已在用户交互时解锁）
     if (analysisResult?.music_file) {
       if (audioRef.current) {
         audioRef.current.pause();
       }
-      audioRef.current = new Audio(analysisResult.music_file);
-      audioRef.current.loop = true; // Loop the music
+      audioRef.current = audioManager.getAudio(analysisResult.music_file);
+      audioRef.current.loop = true;
       audioRef.current.volume = 0;
 
       const playPromise = audioRef.current.play();
@@ -72,6 +73,8 @@ export default function RebirthStage({ analysisResult, recordId }: RebirthStageP
         }).catch(e => {
           console.log("Audio auto-play failed:", e);
           setIsPlaying(false);
+          // 在移动端显示音乐提示，让用户手动播放
+          setShowMusicHint(true);
         });
       }
 
@@ -115,6 +118,17 @@ export default function RebirthStage({ analysisResult, recordId }: RebirthStageP
     setIsPlaying(!isPlaying);
   };
 
+  // 检测是否为移动端
+  const isMobile = () => {
+    if (typeof window === 'undefined') return false;
+    return /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+  };
+
+  // 检测是否支持 Web Share API
+  const canShare = () => {
+    return typeof navigator !== 'undefined' && typeof navigator.share === 'function' && typeof navigator.canShare === 'function';
+  };
+
   const handleSavePoster = async () => {
     if (!posterRef.current || isSaving) return;
 
@@ -129,10 +143,69 @@ export default function RebirthStage({ analysisResult, recordId }: RebirthStageP
         cacheBust: true,
       });
 
-      const link = document.createElement('a');
-      link.download = `furnace-2026-rebirth.png`;
-      link.href = dataUrl;
-      link.click();
+      // 移动端：尝试使用 Web Share API 或在新窗口打开
+      if (isMobile()) {
+        // 将 dataUrl 转换为 Blob
+        const response = await fetch(dataUrl);
+        const blob = await response.blob();
+        const file = new File([blob], 'furnace-2026-rebirth.png', { type: 'image/png' });
+
+        // 尝试使用 Web Share API
+        if (canShare() && navigator.canShare({ files: [file] })) {
+          await navigator.share({
+            files: [file],
+            title: '情绪熔炉 - 2026 灵感卡片',
+            text: analysisResult?.healing_text || ''
+          });
+        } else {
+          // 回退方案：在新窗口打开图片，提示长按保存
+          const newWindow = window.open('', '_blank');
+          if (newWindow) {
+            newWindow.document.write(`
+              <html>
+                <head>
+                  <title>长按保存图片</title>
+                  <meta name="viewport" content="width=device-width, initial-scale=1">
+                  <style>
+                    body { 
+                      margin: 0; 
+                      display: flex; 
+                      flex-direction: column;
+                      align-items: center; 
+                      justify-content: center; 
+                      min-height: 100vh; 
+                      background: #1a1a1a;
+                      padding: 20px;
+                      box-sizing: border-box;
+                    }
+                    img { 
+                      max-width: 100%; 
+                      height: auto;
+                      border-radius: 12px;
+                    }
+                    p {
+                      color: #B8860B;
+                      font-size: 16px;
+                      margin-top: 20px;
+                      text-align: center;
+                    }
+                  </style>
+                </head>
+                <body>
+                  <img src="${dataUrl}" alt="灵感卡片">
+                  <p>📲 长按图片保存到相册</p>
+                </body>
+              </html>
+            `);
+          }
+        }
+      } else {
+        // 桌面端：使用传统下载方式
+        const link = document.createElement('a');
+        link.download = `furnace-2026-rebirth.png`;
+        link.href = dataUrl;
+        link.click();
+      }
 
       // 追踪 poster_save
       trackEvent('poster_save', {

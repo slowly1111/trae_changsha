@@ -2,6 +2,7 @@
 
 import React, { useEffect } from 'react';
 import { motion } from 'framer-motion';
+import { audioManager } from '@/lib/audioManager';
 
 interface ParticleEffectProps {
   text: string;
@@ -13,10 +14,8 @@ export default function ParticleEffect({ text, onComplete }: ParticleEffectProps
   const characters = text.split('');
 
   useEffect(() => {
-    // Play dissolve sound
-    const audio = new Audio('/audio/dissolve.wav');
-    audio.volume = 0.6;
-    audio.play().catch(e => console.error("Audio play failed", e));
+    // 使用 audioManager 播放音效（已在用户交互时解锁）
+    audioManager.play('/audio/dissolve.wav', { volume: 0.6 });
 
     // Reduced wait time before triggering next stage to 2s
     // This allows the particles to continue floating while the new scene fades in
