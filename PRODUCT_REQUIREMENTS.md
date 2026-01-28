@@ -133,7 +133,7 @@
 
 ### 6.1 Google Analytics (GA4)
 
-**Measurement ID**: `G-X1M15ZEGFL`
+**Measurement ID**: `G-XXXXXXXXXX`（见环境变量配置）
 
 #### 核心漏斗事件
 
@@ -159,7 +159,7 @@
 
 ### 6.2 Supabase 数据存储
 
-**Project URL**: `https://ctpwhpwjpyzopignkawn.supabase.co`
+**Project URL**: 见环境变量 `NEXT_PUBLIC_SUPABASE_URL`
 
 #### 数据库表结构 (burn_records)
 
