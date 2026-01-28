@@ -127,12 +127,78 @@
 
 ---
 
-## 6. 数据埋点需求 (Data Analytics)
+## 6. 数据与分析架构 (Data & Analytics)
 
-为验证产品效果，需采集以下核心指标：
-1.  **熔断率**：点击按钮并成功完成 2 秒长按的用户占比（衡量交互门槛）。
-2.  **保存率**：到达重生页后，点击"保存灵感卡片"的用户占比（衡量内容满意度）。
-3.  **情绪分布**：统计用户输入文本的情绪分类占比（用于生成年度情绪报告）。
+本产品采用 **双轨数据采集策略**：Google Analytics 负责宏观流量与行为分析，Supabase 负责微观用户记录与产品功能支撑。
+
+### 6.1 Google Analytics (GA4)
+
+**Measurement ID**: `G-X1M15ZEGFL`
+
+#### 核心漏斗事件
+
+| 事件名称 | 触发时机 | 参数 |
+| :--- | :--- | :--- |
+| `page_view` | 进入主页 | `page` |
+| `input_start` | 开始在文本框输入 | `text_length` |
+| `burn_attempt` | 按下"熔断"按钮 | `text_length`, `edit_count` |
+| `burn_complete` | 长按 2 秒完成焚烧 | `text_length`, `press_duration_ms`, `edit_count` |
+| `rebirth_view` | 看到重生页面 | `emotion_type`, `keyword` |
+| `poster_save` | 保存海报 | `emotion_type`, `keyword` |
+| `music_play` | 播放背景音乐 | `auto_play` (boolean) |
+| `restart` | 点击重新开始 | `stay_duration_seconds` |
+
+#### 行为深度分析
+
+| 事件名称 | 意义 | 参数 |
+| :--- | :--- | :--- |
+| `burn_abandon` | 按下但未完成（中途放开） | `progress_percent`, `text_length` |
+| `page_stay_duration` | 在重生页停留时长 | `duration_seconds` |
+
+---
+
+### 6.2 Supabase 数据存储
+
+**Project URL**: `https://ctpwhpwjpyzopignkawn.supabase.co`
+
+#### 数据库表结构 (burn_records)
+
+| 字段名 | 类型 | 说明 |
+| :--- | :--- | :--- |
+| `id` | UUID | 主键，自动生成 |
+| `session_id` | TEXT | 匿名用户标识（localStorage UUID） |
+| `input_text` | TEXT | 用户输入的原始文本 |
+| `emotion_type` | TEXT | AI 分析的情绪类型 |
+| `healing_text` | TEXT | AI 生成的治愈文案 |
+| `soul_keyword` | TEXT | 提取的灵魂关键词 |
+| `press_duration_ms` | INTEGER | 长按持续时间（毫秒） |
+| `saved_poster` | BOOLEAN | 是否保存了海报 |
+| `created_at` | TIMESTAMP | 记录创建时间 |
+
+#### 安全策略 (Row Level Security)
+
+- **插入**：允许匿名用户插入记录
+- **查询**：允许匿名用户读取自己的记录
+- **更新**：允许匿名用户更新自己的记录（海报保存状态）
+
+#### 数据用途
+
+1. **用户历史回顾**：展示"上次你焚烧了..."
+2. **情绪日记功能**：基于 `session_id` 构建个人情绪轨迹
+3. **内容分析**：原始文本可用于后续 AI 训练/优化
+4. **运营报表**：统计情绪分布、关键词词云
+
+---
+
+### 6.3 SEO 配置
+
+| 配置项 | 内容 |
+| :--- | :--- |
+| **标题** | 情绪熔炉 \| 将 2025 的遗憾焚烧成 2026 的希望 |
+| **描述** | AI 驱动的数字疗愈工具，沉浸式交互体验，焚烧负面记忆，获取治愈文案 |
+| **关键词** | 情绪熔炉、数字疗愈、AI 疗愈、新年仪式、2025 告别、情绪释放 |
+| **Open Graph** | 已配置社交分享卡片（微信/微博/Twitter） |
+| **Sitemap** | 动态生成，自动提交搜索引擎 |
 
 ---
 
@@ -140,5 +206,7 @@
 
 *   **v2.1**: 增加"多人熔炉"模式，用户可看到此刻正在一起销毁烦恼的陌生人产生的火花（弱社交）。
 *   **v2.2**: 支持语音输入，通过声音的纹理分析情绪。
+*   **v2.3**: 基于 Supabase 数据构建"年度情绪报告"功能。
 *   **v3.0**: 引入 Web3 概念，将销毁的记忆铸造为不可篡改的纪念 NFT（Soulbound Token）。
+
 
