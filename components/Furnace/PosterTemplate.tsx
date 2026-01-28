@@ -58,7 +58,7 @@ export const PosterTemplate = React.forwardRef<HTMLDivElement, PosterTemplatePro
             </div>
 
             {/* Main Healing Text - Vertical */}
-            <div className="writing-vertical-rl text-3xl md:text-4xl text-[#2C1810] font-medium leading-[2.0] md:leading-[2.5] tracking-widest h-[650px] flex flex-wrap content-start gap-4 md:gap-8"
+            <div className="writing-vertical-rl text-3xl md:text-4xl text-[#2C1810] font-medium leading-[1.6] md:leading-[1.8] tracking-widest h-[650px] flex flex-wrap content-start gap-4 md:gap-8"
               style={{
                 textOrientation: 'upright',
                 fontVariantNumeric: 'lining-nums' // Fix number alignment
